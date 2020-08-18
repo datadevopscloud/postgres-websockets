@@ -16,6 +16,7 @@ import qualified Crypto.JOSE.Types   as JOSE.Types
 import           Crypto.JWT
 import qualified Data.HashMap.Strict as M
 import           Protolude
+import           Protolude.Conv
 import Data.List
 import Data.Time.Clock (UTCTime)
 import qualified Data.Aeson as JSON
@@ -116,4 +117,4 @@ hs256jwk key =
 
 parseJWK :: ByteString -> JWK
 parseJWK str =
-  fromMaybe (hs256jwk str) (JSON.decode (toS str) :: Maybe JWK)
+  fromMaybe (hs256jwk str) (JSON.decode (toSL str) :: Maybe JWK)

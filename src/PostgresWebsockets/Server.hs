@@ -7,6 +7,7 @@ module PostgresWebsockets.Server
         ) where
 
 import           Protolude
+import           Protolude.Conv
 import           PostgresWebsockets.Middleware
 import           PostgresWebsockets.Config
 import           PostgresWebsockets.HasqlBroadcast (newHasqlBroadcaster)
@@ -27,8 +28,8 @@ import           Network.Wai.Middleware.RequestLogger (logStdout)
 serve :: AppConfig -> IO ()
 serve conf = do
   shutdownSignal <- newEmptyMVar
-  let listenChannel = toS $ configListenChannel conf
-      pgSettings = toS (configDatabase conf)
+  let listenChannel = toSL $ configListenChannel conf
+      pgSettings = toSL (configDatabase conf)
       waitForShutdown cl = void $ forkIO (takeMVar shutdownSignal >> cl >> die "Shutting server down...")
       appSettings = warpSettings waitForShutdown conf
 
@@ -47,7 +48,7 @@ serve conf = do
     mkGetTime :: IO (IO UTCTime)
     mkGetTime = mkAutoUpdate defaultUpdateSettings {updateAction = getCurrentTime}
     staticApp' :: Text -> Application
-    staticApp' = staticApp . defaultFileServerSettings . toS
+    staticApp' = staticApp . defaultFileServerSettings . toSL
     dummyApp :: Application
     dummyApp _ respond =
         respond $ responseLBS status200 [("Content-Type", "text/plain")] "Hello, Web!"

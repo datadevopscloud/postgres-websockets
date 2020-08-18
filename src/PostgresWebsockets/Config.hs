@@ -19,6 +19,7 @@ import           Data.Text                   (intercalate, pack, replace, strip,
 import           Data.Version                (versionBranch)
 import           Paths_postgres_websockets   (version)
 import           Protolude hiding            (intercalate, (<>), optional, replace)
+import           Protolude.Conv
 import           Data.String (IsString(..))
 import           Network.Wai.Handler.Warp
 import qualified Data.ByteString                      as BS
@@ -47,9 +48,9 @@ loadConfig = readOptions >>= loadSecretFile
 -- | Given a shutdown handler and an AppConfig builds a Warp Settings to start a stand-alone server
 warpSettings :: (IO () -> IO ()) -> AppConfig -> Settings
 warpSettings waitForShutdown AppConfig{..} =
-      setHost (fromString $ toS configHost)
+      setHost (fromString $ toSL configHost)
                   . setPort configPort
-                  . setServerName (toS $ "postgres-websockets/" <> prettyVersion)
+                  . setServerName (toSL $ "postgres-websockets/" <> prettyVersion)
                   . setTimeout 3600
                   . setInstallShutdownHandler waitForShutdown
                   . setGracefulShutdownTimeout (Just 5)
@@ -82,7 +83,7 @@ loadSecretFile conf = extractAndTransform secret
       fmap setSecret $ transformString isB64 =<<
         case stripPrefix "@" s of
           Nothing       -> return . encodeUtf8 $ s
-          Just filename -> chomp <$> BS.readFile (toS filename)
+          Just filename -> chomp <$> BS.readFile (toSL filename)
       where
         chomp bs = fromMaybe bs (BS.stripSuffix "\n" bs)
 

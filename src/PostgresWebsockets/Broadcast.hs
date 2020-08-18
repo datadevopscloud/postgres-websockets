@@ -22,6 +22,7 @@ module PostgresWebsockets.Broadcast ( Multiplexer (src)
                              ) where
 
 import Protolude
+import Protolude.Conv
 import qualified StmContainers.Map as M
 import Control.Concurrent.STM.TChan
 import Control.Concurrent.STM.TQueue
@@ -88,7 +89,7 @@ onMessage multi chan action = do
   where
     disposeListener _ = atomically $ do
       mC <- M.lookup chan (channels multi)
-      let c = fromMaybe (panic $ "trying to remove listener from non existing channel: " <> toS chan) mC
+      let c = fromMaybe (panic $ "trying to remove listener from non existing channel: " <> toSL chan) mC
       M.delete chan (channels multi)
       when (listeners c - 1 > 0) $
         M.insert Channel{ broadcast = broadcast c, listeners = listeners c - 1 } chan (channels multi)

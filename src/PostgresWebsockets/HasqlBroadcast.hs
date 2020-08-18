@@ -16,6 +16,7 @@ module PostgresWebsockets.HasqlBroadcast
   ) where
 
 import Protolude hiding (putErrLn)
+import Protolude.Conv
 
 import Hasql.Connection
 import Hasql.Notifications
@@ -38,7 +39,7 @@ newHasqlBroadcaster onConnectionFailure ch = newHasqlBroadcasterForConnection . 
 {- | Returns a multiplexer from a connection URI or an error message on the left case
    This function also spawns a thread that keeps relaying the messages from the database to the multiplexer's listeners
 -}
-newHasqlBroadcasterOrError :: IO () -> Text -> ByteString -> IO (Either ByteString Multiplexer)
+newHasqlBroadcasterOrError :: IO () -> Text -> ByteString -> IO (Either Text Multiplexer)
 newHasqlBroadcasterOrError onConnectionFailure ch =
   acquire >=> (sequence . mapBoth show (newHasqlBroadcasterForConnection . return))
   where
@@ -88,14 +89,14 @@ newHasqlBroadcasterForChannel onConnectionFailure ch getCon = do
   return multi
   where
     toMsg :: ByteString -> ByteString -> Message
-    toMsg c m = case decode (toS m) of
+    toMsg c m = case decode (toSL m) of
                    Just v -> Message (channelDef c v) m
                    Nothing -> Message c m
 
     lookupStringDef :: Text -> ByteString -> Value -> ByteString
     lookupStringDef key d (Object obj) =
-      case lookupDefault (String $ toS d) key obj of
-        String s -> toS s
+      case lookupDefault (String $ toSL d) key obj of
+        String s -> toSL s
         _ -> d
     lookupStringDef _ d _ = d
     channelDef = lookupStringDef "channel"

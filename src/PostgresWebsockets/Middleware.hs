@@ -16,6 +16,7 @@ import qualified Network.Wai                    as Wai
 import qualified Network.Wai.Handler.WebSockets as WS
 import qualified Network.WebSockets             as WS
 import           Protolude
+import           Protolude.Conv
 
 import qualified Data.Aeson                     as A
 import qualified Data.ByteString.Char8          as BS
@@ -52,7 +53,7 @@ jwtExpirationStatusCode = 3001
 -- this kills all children and frees resources for us
 wsApp :: IO UTCTime -> Text -> ByteString -> H.Pool -> Multiplexer -> WS.ServerApp
 wsApp getTime dbChannel secret pool multi pendingConn =
-  getTime >>= validateClaims requestChannel secret (toS jwtToken) >>= either rejectRequest forkSessions
+  getTime >>= validateClaims requestChannel secret (toSL jwtToken) >>= either rejectRequest forkSessions
   where
     hasRead m = m == ("r" :: ByteString) || m == ("rw" :: ByteString)
     hasWrite m = m == ("w" :: ByteString) || m == ("rw" :: ByteString)
@@ -60,7 +61,7 @@ wsApp getTime dbChannel secret pool multi pendingConn =
     rejectRequest :: Text -> IO ()
     rejectRequest msg = do
       putErrLn $ "Rejecting Request: " <> msg
-      WS.rejectRequest pendingConn (toS msg)
+      WS.rejectRequest pendingConn (toSL msg)
 
     -- the URI has one of the two formats - /:jwt or /:channel/:jwt
     pathElements = BS.split '/' $ BS.drop 1 $ WS.requestPath $ WS.pendingRequest pendingConn
@@ -89,7 +90,7 @@ wsApp getTime dbChannel secret pool multi pendingConn =
               forM_ chs $ flip (onMessage multi) $ WS.sendTextData conn . B.payload
 
             when (hasWrite mode) $
-              let sendNotifications = void . H.notifyPool pool dbChannel . toS
+              let sendNotifications = void . H.notifyPool pool dbChannel . toSL
               in notifySession validClaims conn getTime sendNotifications chs
 
             waitForever <- newEmptyMVar
@@ -109,7 +110,7 @@ notifySession claimsToSend wsCon getTime send chs =
   where
     relayData = do 
       msg <- WS.receiveData wsCon
-      forM_ chs (relayChannelData msg . toS)
+      forM_ chs (relayChannelData msg . toSL)
 
     relayChannelData msg ch = do
       claims' <- claimsWithTime ch
